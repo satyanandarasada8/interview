@@ -12,7 +12,9 @@ import scala.concurrent.duration._
 import java.util.concurrent.TimeUnit
 
 /**
+  * =================================================== 
   * Cached implementation of RatesService.
+  * ===================================================
   *
   * ================= REQUIREMENTS SATISFIED =================
   *

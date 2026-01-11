@@ -9,7 +9,7 @@ import forex.services.rates.errors.Error
   * Stub implementation of the OneFrame rate provider.
   *
   * ============================================================
-  * WHY THIS FILE EXISTS
+  * WHY THIS FILE EXISTS(PUROPOSE)
   * ============================================================
   *
   * The assignment requires us to fetch FX rates from "OneFrame".
