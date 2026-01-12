@@ -1,82 +1,60 @@
 package forex
 
-import cats.effect.{Concurrent, Timer}
-import cats.effect.concurrent.Ref
+import cats.effect.{ Concurrent, Timer }
 import forex.config.ApplicationConfig
 import forex.http.rates.RatesHttpRoutes
 import forex.programs._
 import forex.services._
-import forex.services.rates.interpreters._
-import forex.domain.Rate
+import forex.services.rates.interpreters.NewOneFrame
 import org.http4s._
 import org.http4s.implicits._
-import org.http4s.server.middleware.{AutoSlash, Timeout}
-import scala.concurrent.duration._
+import org.http4s.server.middleware.{ AutoSlash, Timeout }
 
-class Module[F[_]: Concurrent: Timer](config: ApplicationConfig) {
-
-  // ------------------------------------------------
-  // Rates service wiring
-  // ------------------------------------------------
-
-  /**
-    * OneFrame provider (stub).
-    * Requirement satisfied:
-    *  - External provider abstraction exists
-    */
-  private val oneFrameService: RatesService[F] =
-    new NewOneFrame[F]()
+/**
+  * Module
+  *
+  * This is the wiring layer of the application.
+  *
+  * Requirement satisfied:
+  * - "Application must be modular"
+  * - "Services wired via dependency injection"
+  */
+final class Module[F[_]: Concurrent: Timer](config: ApplicationConfig) {
 
   /**
-    * Cached rates service with expiry.
+    * Requirement:
+    * - External rate provider
     *
-    * Requirements satisfied:
-    *  - In-memory cache
-    *  - Time-based expiry (expiryTime)
-    *  - Cache sits BEFORE HTTP
+    * Currently using a stubbed OneFrame service.
     */
-  private val ratesService: RatesService[F] = {
-  val emptyCache =
-    Ref.unsafe[F, Map[Rate.Pair, (Rate, Long)]](Map.empty)
+  private val ratesService: RatesService[F] =
+    new NewOneFrame[F]
 
-  new NewCachedRatesService[F](
-    underlying = oneFrameService,
-	// Requirement: time-based expiry (config to be added later)
-    expiryTime = 5.seconds, 
-    cache      = emptyCache
-  )
-}
-
-  // ------------------------------------------------
-  // Program layer
-  // ------------------------------------------------
-
+  /**
+    * Requirement:
+    * - Business logic separated from HTTP
+    */
   private val ratesProgram: RatesProgram[F] =
     RatesProgram[F](ratesService)
 
-  // ------------------------------------------------
-  // HTTP layer
-  // ------------------------------------------------
-
+  /**
+    * Requirement:
+    * - HTTP API exposing GET /rates
+    */
   private val ratesHttpRoutes: HttpRoutes[F] =
     new RatesHttpRoutes[F](ratesProgram).routes
 
-  // ------------------------------------------------
-  // Middleware
-  // ------------------------------------------------
+  // ---- Middleware ----
 
-  type PartialMiddleware = HttpRoutes[F] => HttpRoutes[F]
-  type TotalMiddleware   = HttpApp[F] => HttpApp[F]
+  private val routesMiddleware: HttpRoutes[F] => HttpRoutes[F] =
+    AutoSlash(_)
 
-  private val routesMiddleware: PartialMiddleware =
-    http => AutoSlash(http)
+  private val appMiddleware: HttpApp[F] => HttpApp[F] =
+    Timeout(config.http.timeout)
 
-  private val appMiddleware: TotalMiddleware =
-    http => Timeout(config.http.timeout)(http)
-
-  private val http: HttpRoutes[F] =
-    ratesHttpRoutes
-
+  /**
+    * Final HTTP application
+    */
   val httpApp: HttpApp[F] =
-    appMiddleware(routesMiddleware(http).orNotFound)
+    appMiddleware(routesMiddleware(ratesHttpRoutes).orNotFound)
 }

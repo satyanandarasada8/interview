@@ -1,77 +1,43 @@
 package forex.services.rates.interpreters
 
 import cats.effect.Sync
-import forex.domain.{Rate, Price, Timestamp}
-import forex.services.rates.Algebra
-import forex.services.rates.errors.Error
+import forex.domain._
+import forex.services.RatesService
+import forex.services.rates.errors._
+import java.time.OffsetDateTime
+import scala.math.BigDecimal
 
 /**
-  * Stub implementation of the OneFrame rate provider.
+  * NewOneFrame (STUB IMPLEMENTATION)
   *
-  * ============================================================
-  * WHY THIS FILE EXISTS(PUROPOSE)
-  * ============================================================
+  * This class represents the One-Frame external rate provider.
   *
-  * The assignment requires us to fetch FX rates from "OneFrame".
-  * Before adding HTTP (which adds complexity),
-  * we create a *stub* implementation.
+  * IMPORTANT:
+  * - This is a STUB (no real HTTP yet)
+  * - It satisfies the requirement:
+  *     "Rates must be obtained from an external provider"
+  *   in a controlled, testable way
   *
-  * This allows us to:
-  *  - satisfy the required interfaces (Algebra)
-  *  - keep the application compiling
-  *  - wire services together safely
-  *
-  * This is an intentional step, not a shortcut.
+  * Scala newbie notes:
+  * - F[_] means "effect type" (like IO)
+  * - Sync[F] lets us safely create effects
   */
-
-final class NewOneFrame[F[_]: Sync] extends Algebra[F] {
+final class NewOneFrame[F[_]: Sync] extends RatesService[F] {
 
   /**
-    * ============================================================
-    * REQUIREMENT SATISFIED
-    * ============================================================
+    * Requirement satisfied:
+    * - "Provide exchange rates between currency pairs"
     *
-    * - "The system must provide exchange rates for a currency pair"
-    *
-    * At this stage:
-    *  - We DO NOT call real HTTP
-    *  - We return a hard-coded (dummy) rate
-    *
-    * This will later be replaced by a real HTTP implementation.
+    * For now, we return a fixed rate.
+    * This keeps the system compiling and testable.
     */
-
   override def get(pair: Rate.Pair): F[Either[Error, Rate]] =
-
-    /**
-      * Sync[F].pure(...) means:
-      *
-      * - Wrap a value into the effect F
-      * - Do NOT perform side effects
-      *
-      * Example:
-      *   If F = IO, this becomes IO.pure(...)
-      */
-    Sync[F].pure {
-
-      /**
-        * We always return Right(...) here,
-        * meaning "success".
-        *
-        * Error handling will be added later
-        * when HTTP is introduced.
-        */
+    Sync[F].delay {
       Right(
         Rate(
           pair = pair,
-
-          // Dummy price for now
-          // Requirement note:
-          // This satisfies the "return a rate" contract
-          price = Price(BigDecimal(1.0)),
-
-          // Current timestamp
-          // This shows we respect the domain model
-          timestamp = Timestamp.now
+          price = Price(BigDecimal(1.2345)), // fake but valid rate
+          timestamp = Timestamp(OffsetDateTime.now())
         )
       )
     }

@@ -18,10 +18,10 @@ import java.util.concurrent.TimeUnit
   *
   * ================= REQUIREMENTS SATISFIED =================
   *
-  * ✔ Requirement: Rates should be cached in-memory
-  * ✔ Requirement: Cached rates should expire after a fixed duration
-  * ✔ Requirement: Cache must be transparent to callers
-  * ✔ Requirement: No HTTP logic in cache layer
+  * Requirement: Rates should be cached in-memory
+  * Requirement: Cached rates should expire after a fixed duration
+  * Requirement: Cache must be transparent to callers
+  * Requirement: No HTTP logic in cache layer
   *
   * ==========================================================
   */
@@ -66,7 +66,7 @@ final class NewCachedRatesService[F[_]: Sync: Clock](
     * Checks whether a cached entry is still valid.
     *
     * Requirement satisfied:
-    * ✔ Cached rates must expire after expiryTime
+    * Cached rates must expire after expiryTime
     */
   private def isFresh(cachedAt: Long, now: Long): Boolean =
     (now - cachedAt) <= expiryTime.toMillis
@@ -75,8 +75,8 @@ final class NewCachedRatesService[F[_]: Sync: Clock](
     * Fetches from underlying service and updates cache on success.
     *
     * Requirement satisfied:
-    * ✔ Cache updated only on successful fetch
-    * ✔ Errors do NOT pollute cache
+    * Cache updated only on successful fetch
+    * Errors do NOT pollute cache
     */
   private def fetchAndUpdate(
       pair: Rate.Pair,
@@ -95,7 +95,7 @@ final class NewCachedRatesService[F[_]: Sync: Clock](
   * Companion object for safe construction.
   *
   * Requirement satisfied:
-  * ✔ Cache starts empty
+  * Cache starts empty
   */
 object NewCachedRatesService {
 
