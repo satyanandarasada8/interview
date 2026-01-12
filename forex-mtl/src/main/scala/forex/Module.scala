@@ -1,60 +1,41 @@
 package forex
 
-import cats.effect.{ Concurrent, Timer }
+import cats.effect.{Concurrent, Timer}
 import forex.config.ApplicationConfig
 import forex.http.rates.RatesHttpRoutes
 import forex.programs._
 import forex.services._
-import forex.services.rates.interpreters.NewOneFrame
 import org.http4s._
 import org.http4s.implicits._
-import org.http4s.server.middleware.{ AutoSlash, Timeout }
+import org.http4s.server.middleware.{AutoSlash, Timeout}
 
 /**
   * Module
   *
-  * This is the wiring layer of the application.
-  *
-  * Requirement satisfied:
-  * - "Application must be modular"
-  * - "Services wired via dependency injection"
+  * Pure wiring layer.
+  * NO service construction here.
   */
-final class Module[F[_]: Concurrent: Timer](config: ApplicationConfig) {
+final class Module[F[_]: Concurrent: Timer](
+    config: ApplicationConfig,
+    ratesService: RatesService[F]      // injected
+) {
 
-  /**
-    * Requirement:
-    * - External rate provider
-    *
-    * Currently using a stubbed OneFrame service.
-    */
-  private val ratesService: RatesService[F] =
-    new NewOneFrame[F]
-
-  /**
-    * Requirement:
-    * - Business logic separated from HTTP
-    */
+  // Business logic
   private val ratesProgram: RatesProgram[F] =
     RatesProgram[F](ratesService)
 
-  /**
-    * Requirement:
-    * - HTTP API exposing GET /rates
-    */
+  // HTTP routes
   private val ratesHttpRoutes: HttpRoutes[F] =
     new RatesHttpRoutes[F](ratesProgram).routes
 
-  // ---- Middleware ----
-
+  // Middleware
   private val routesMiddleware: HttpRoutes[F] => HttpRoutes[F] =
     AutoSlash(_)
 
   private val appMiddleware: HttpApp[F] => HttpApp[F] =
     Timeout(config.http.timeout)
 
-  /**
-    * Final HTTP application
-    */
+  // Final app
   val httpApp: HttpApp[F] =
     appMiddleware(routesMiddleware(ratesHttpRoutes).orNotFound)
 }
